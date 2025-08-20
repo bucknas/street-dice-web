@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cee Lo Draft Order</title>
+  <style>
+    :root{--bg:#0f1115;--card:#151923;--ink:#e7eaf0;--muted:#aeb6c2;--border:#232a37}
+    body{margin:0;font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;color:var(--ink);background:#0f1115}
+    .wrap{max-width:900px;margin:24px auto 80px;padding:0 16px}
+    h1{margin:0 0 6px;font-size:28px}
+    p.lead{margin:0 0 10px;color:var(--muted)}
+    .badge{display:inline-block;margin:4px 0 18px;padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:#0e1421;color:var(--muted);font-size:12px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.03)),var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card .bd{padding:14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    tbody tr:hover{background:rgba(255,255,255,.02)}
+    .dice{font-size:26px;letter-spacing:3px}
+    button{appearance:none;border:1px solid var(--border);background:#1d2432;color:#e7eaf0;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    button:hover{background:#20283a}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .small{font-size:12px;color:var(--muted)}
+    .banner{margin:12px 0 0;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#131a28;display:none}
+    .banner.win{display:block;border-color:rgba(95,227,161,.35);box-shadow:0 0 0 1px rgba(95,227,161,.15) inset}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#0e1421}
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);}
+    .login,.admin{max-width:520px;width:92%;}
+    .login .bd,.admin .bd{display:grid;gap:10px}
+    .login input,.admin textarea{background:#0f1522;border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--ink)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .me{display:inline-flex;gap:8px;align-items:center}
+    .shaking .die{display:inline-block;min-width:1ch;animation:jiggle .25s infinite ease-in-out}
+    @keyframes jiggle{0%{transform:translateY(0)}50%{transform:translateY(-2px)}100%{transform:translateY(0)}}
+    .admin-badge{margin-left:8px;border:1px solid var(--border);padding:2px 8px;border-radius:999px;font-size:12px;background:#142033}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cee Lo draft order</h1>
+    <p class="lead">Log in with your name. You can roll only for yourself. The server keeps the scoreboard for everyone. Dice animate for 4 seconds before locking.</p>
+    <div class="badge">Unique outcomes: <strong>ON</strong> (no ties)</div>
+
+    <div class="row" style="margin:0 0 14px">
+      <span class="small">Logged in as</span>
+      <strong id="whoami" class="me">—</strong>
+      <span id="adminFlag" class="admin-badge" style="display:none">Admin</span>
+      <button id="changeUserBtn" class="small" style="padding:6px 10px">Change user</button>
+      <button id="openAdminBtn" class="small" style="padding:6px 10px">Admin</button>
+      <button id="resetBtn" class="small" style="padding:6px 10px">Reset League</button>
+      <span class="small" id="lastUpdated" style="margin-left:auto"></span>
+    </div>
+
+    <section class="card">
+      <div class="bd">
+        <div id="winnerBar" class="banner"></div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px">Order</th>
+              <th>Name</th>
+              <th>Roll</th>
+              <th>Result</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="board"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Login overlay -->
+  <div id="loginOverlay" class="overlay" style="display:none">
+    <section class="card login">
+      <div class="bd">
+        <div class="row">
+          <input id="loginInput" type="text" placeholder="Your name (e.g., Zac)" />
+          <button id="loginBtn">Enter</button>
+          <button id="loginAdminBtn">Admin</button>
+          <span id="loginMsg" class="small"></span>
+        </div>
+        <div id="nameList" class="small"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Admin Panel overlay -->
+  <div id="adminOverlay" class="overlay" style="display:none">
+    <section class="card admin">
+      <div class="bd">
+        <strong>Admin Panel</strong>
+        <div class="small">Edit player names (one per line). Saving trims duplicates and keeps existing results only for names that remain.</div>
+        <textarea id="namesText" rows="10" placeholder="One name per line"></textarea>
+        <div class="row">
+          <button id="saveNamesBtn">Save names</button>
+          <button id="adminResetBtn">Reset board</button>
+          <button id="closeAdminBtn">Close</button>
+          <button id="logoutAdminBtn" style="margin-left:auto">Log out admin</button>
+        </div>
+        <div id="adminMsg" class="small"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const DIE=["","\u2680","\u2681","\u2682","\u2683","\u2684","\u2685"];
+    const diceIcons=a=>a.map(n=>DIE[n]).join(' ');
+    const $ = s => document.querySelector(s);
+
+    let FRIENDS = [];
+    let ME = localStorage.getItem('ceelo_me') || '';
+    let ADMIN_TOKEN = localStorage.getItem('ceelo_admin') || '';
+
+    function isAdmin(){ return !!ADMIN_TOKEN; }
+    function show(el){ el.style.display='flex'; }
+    function hide(el){ el.style.display='none'; }
+    function showLogin(){ show($("#loginOverlay")); setTimeout(()=>$("#loginInput").focus(), 0); }
+    function hideLogin(){ hide($("#loginOverlay")); }
+    function showAdmin(){ if(!isAdmin()) return; show($("#adminOverlay")); $("#adminMsg").textContent=''; preloadAdminNames(); }
+    function hideAdmin(){ hide($("#adminOverlay")); }
+    function setMe(name){ ME = name; localStorage.setItem('ceelo_me', name); $("#whoami").textContent = ME || '—'; }
+    function setAdminToken(t){ ADMIN_TOKEN = t||''; if(t) localStorage.setItem('ceelo_admin', t); else localStorage.removeItem('ceelo_admin'); $("#adminFlag").style.display = isAdmin()? 'inline-block':'none'; }
+
+    function renderWinnerBar(winner, results){
+      const bar = $("#winnerBar");
+      if (!winner || !winner.ready){ bar.style.display='none'; bar.className='banner'; bar.textContent=''; return; }
+      const L = winner.leaders[0];
+      const hand = results[L.name] || {};
+      bar.className = 'banner win';
+      bar.innerHTML = `<strong>Winner:</strong> ${L.name} <span class="pill">${hand.label} <span class="dice">${diceIcons(hand.dice||[])}</span></span>`;
+      bar.style.display='block';
+    }
+
+    async function fetchState(){
+      const r = await fetch('/api/state');
+      if (!r.ok) throw new Error('Failed to load state');
+      return r.json();
+    }
+
+    function startDiceShuffle(cell){
+      if(!cell) return ()=>{};
+      cell.classList.add('shaking');
+      cell.innerHTML = '<span class="die">⚀</span> <span class="die">⚀</span> <span class="die">⚀</span>';
+      const spans = [...cell.querySelectorAll('.die')];
+      const tick = () => spans.forEach(s => s.textContent = DIE[1+Math.floor(Math.random()*6)]);
+      tick();
+      const id = setInterval(tick, 80);
+      return ()=>{ clearInterval(id); cell.classList.remove('shaking'); };
+    }
+
+    async function render(){
+      const data = await fetchState();
+      FRIENDS = data.friends;
+      $("#nameList").textContent = 'League names: ' + FRIENDS.join(', ');
+      $("#lastUpdated").textContent = 'Updated ' + new Date(data.updatedAt).toLocaleString();
+      $("#adminFlag").style.display = isAdmin()? 'inline-block':'none';
+
+      if (!ME){ $("#whoami").textContent = '—'; showLogin(); } else { $("#whoami").textContent = ME; }
+
+      const results = data.results || {};
+      const rankScore = (h)=> h ? (h.type==='456'?400:h.type==='triple'?300+h.triple:h.type==='point'?100+h.point:h.type==='123'?0:-1) : -1;
+
+      const rows = FRIENDS.map(name => ({ name, hand: results[name] || null }))
+        .sort((A,B)=>{ const sA=rankScore(A.hand), sB=rankScore(B.hand); if (sA!==sB) return sB-sA; return A.name.localeCompare(B.name); });
+
+      const tbody = $("#board");
+      tbody.innerHTML = '';
+      let order = 1;
+      rows.forEach(({name, hand})=>{
+        const tr = document.createElement('tr');
+        const orderCell = document.createElement('td'); orderCell.textContent = hand ? String(order++) : '';
+        const nameCell  = document.createElement('td'); nameCell.textContent = name;
+        const rollCell  = document.createElement('td'); rollCell.className='dice'; rollCell.textContent = hand ? diceIcons(hand.dice) : '';
+        const resultCell= document.createElement('td'); resultCell.textContent = hand ? hand.label : '';
+
+        const actionCell= document.createElement('td');
+        const btn = document.createElement('button');
+        const canRoll = (name === ME) && !hand;
+        btn.textContent = canRoll ? 'Roll' : 'Locked';
+        btn.disabled = !canRoll;
+        if (canRoll){
+          btn.addEventListener('click', async ()=>{
+            btn.disabled = true;
+            const stopShuffle = startDiceShuffle(rollCell);
+            resultCell.textContent = 'Rolling…';
+            const t0 = performance.now();
+
+            const r = await fetch('/api/roll', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ name })
+            });
+
+            if (!r.ok){
+              if (stopShuffle) stopShuffle();
+              const e = await r.json().catch(()=>({error:'Failed'}));
+              alert(e.error || 'Failed to roll');
+              await render();
+              return;
+            }
+
+            const minMs = 4000;
+            const elapsed = performance.now() - t0;
+            const wait = Math.max(0, minMs - elapsed);
+            setTimeout(async ()=>{
+              if (stopShuffle) stopShuffle();
+              await render();
+            }, wait);
+          });
+        }
+        actionCell.appendChild(btn);
+
+        tr.appendChild(orderCell); tr.appendChild(nameCell); tr.appendChild(rollCell); tr.appendChild(resultCell); tr.appendChild(actionCell);
+        tbody.appendChild(tr);
+      });
+
+      renderWinnerBar(data.winner, results);
+    }
+
+    function tryLogin(){
+      const val = ($("#loginInput").value || '').trim();
+      const match = FRIENDS.find(n => n.toLowerCase() === val.toLowerCase());
+      const msg = $("#loginMsg");
+      if (!match){ msg.textContent = 'Name not in league. Use exact spelling.'; return; }
+      msg.textContent = '';
+      setMe(match);
+      hideLogin();
+      render();
+    }
+
+    async function adminLoginFlow(fromLoginOverlay){
+      const pw = prompt('Admin password:');
+      if (!pw) return;
+      const r = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pw }) });
+      if (!r.ok){
+        alert('Wrong password');
+        return;
+      }
+      const data = await r.json();
+      setAdminToken(data.token);
+      if (fromLoginOverlay) hideLogin();
+      showAdmin();
+    }
+
+    function preloadAdminNames(){ $("#namesText").value = FRIENDS.join('\n'); }
+
+    // Events
+    $("#loginBtn").addEventListener('click', tryLogin);
+    $("#loginInput").addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+    $("#changeUserBtn").addEventListener('click', showLogin);
+    $("#loginAdminBtn").addEventListener('click', ()=>adminLoginFlow(true));
+    $("#openAdminBtn").addEventListener('click', ()=> isAdmin() ? showAdmin() : adminLoginFlow(false));
+
+    $("#resetBtn").addEventListener('click', async ()=>{
+      if (isAdmin()){
+        if (!confirm('Reset the entire board?')) return;
+        const r = await fetch('/api/admin/reset', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ADMIN_TOKEN}`} });
+        if (!r.ok){
+          if (r.status===401) setAdminToken('');
+          alert('Reset failed');
+          return;
+        }
+        alert('Board reset.');
+        await render();
+      } else {
+        const secret = prompt('Enter reset secret');
+        if (!secret) return;
+        const r = await fetch('/api/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ secret }) });
+        if (!r.ok){
+          const e = await r.json().catch(()=>({error:'Failed'}));
+          alert(e.error || 'Failed to reset');
+          return;
+        }
+        alert('Board reset.');
+        await render();
+      }
+    });
+
+    $("#saveNamesBtn").addEventListener('click', async ()=>{
+      const friends = $("#namesText").value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const r = await fetch('/api/admin/set-names', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${ADMIN_TOKEN}`},
+        body: JSON.stringify({ friends })
+      });
+      if (!r.ok){
+        if (r.status===401) setAdminToken('');
+        const e = await r.json().catch(()=>({error:'Save failed'}));
+        $("#adminMsg").textContent = e.error || 'Save failed';
+        return;
+      }
+      $("#adminMsg").textContent = 'Saved.';
+      await render();
+    });
+
+    $("#adminResetBtn").addEventListener('click', async ()=>{
+      if (!confirm('Reset the entire board?')) return;
+      const r = await fetch('/api/admin/reset', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ADMIN_TOKEN}` } });
+      if (!r.ok){
+        if (r.status===401) setAdminToken('');
+        alert('Reset failed');
+        return;
+      }
+      alert('Board reset.');
+      await render();
+    });
+
+    $("#closeAdminBtn").addEventListener('click', hideAdmin);
+    $("#logoutAdminBtn").addEventListener('click', ()=>{ setAdminToken(''); hideAdmin(); });
+
+    (async function start(){
+      if (!ME) showLogin();
+      $("#adminFlag").style.display = isAdmin()? 'inline-block':'none';
+      await render();
+      setInterval(render, 5000);
+    })();
+  </script>
+</body>
+</html>
